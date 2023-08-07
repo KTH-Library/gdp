@@ -1,0 +1,20 @@
+Package: gdp
+Title: Tools for GDP
+Version: 0.0.0.9000
+Authors@R: 
+    person("Markus", "Skyttner", , "markussk@kth.se", role = c("aut", "cre"))
+Description: Tools for GDP provide tests and other facilities and resources
+    for the GDP project.
+License: AGPL (>= 3) + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+Suggests: 
+    testthat,
+    swecris,
+    dplyr,
+    tidyr,
+    waldo,
+    purrr
+Remotes:
+    KTH-Library/swecris    

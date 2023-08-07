@@ -1,2 +1,33 @@
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
 # gdp
-R package with tooling related to GDP ("Gemensamma Data för Projekt")
+
+<!-- badges: start -->
+
+[![R-CMD-check](https://github.com/KTH-Library/gdp/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/KTH-Library/gdp/actions/workflows/R-CMD-check.yaml)
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
+
+The goal of gdp is to provide some tools and resources that are usefull
+when working with data from the GDP project.
+
+## Installation
+
+You can install the development version of gdp from
+[GitHub](https://github.com/) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("KTH-Library/gdp")
+```
+
+## Example
+
+This is a basic example which shows you how to solve a common problem:
+
+``` r
+library(gdp)
+## basic example code
+```
