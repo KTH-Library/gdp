@@ -11,10 +11,16 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 Suggests: 
     testthat,
-    swecris,
     dplyr,
     tidyr,
     waldo,
+    swecris,
     purrr
+Imports:
+    httr,
+    httr2,
+    jsonlite,
+    lubridate,
+    tibble
 Remotes:
     KTH-Library/swecris    
