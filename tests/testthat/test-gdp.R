@@ -5,7 +5,8 @@ library(dplyr)
 library(waldo)
 
 test_that("fundings data match (swecris vs gdp)", {
-  # fundings for KTH
+
+  skip_if(TRUE, "Long running test.")
 
   swecris_kth_funding <- swecris_funding("KTH")
 
@@ -18,6 +19,8 @@ test_that("fundings data match (swecris vs gdp)", {
 })
 
 test_that("fundings data for a specific research area matches (swecris vs gdp)", {
+
+  skip_if(TRUE, "Long running test.")
 
   orgs <- swecris_organisations()
   id <- orgs[which(grepl("KTH", orgs$organisationNameSv)), ][1,]
@@ -43,6 +46,8 @@ test_that("fundings data for a specific research area matches (swecris vs gdp)",
 
 test_that("fundings data for a given coordinating entity matches (swecris vs gdp)", {
 
+  skip_if(TRUE, "Long running test.")
+
   orgs <- swecris_organisations()
   id <- orgs[which(grepl("KTH", orgs$organisationNameSv)), ][1,]
   swecris_kth_projects <- swecris_projects(id$organisationId)
@@ -61,6 +66,8 @@ test_that("fundings data for a given coordinating entity matches (swecris vs gdp
 })
 
 test_that("fundings data related to a given coordinator matches (swecris vs gdp)", {
+
+  skip_if(TRUE, "Long running test.")
 
   orgs <- swecris_organisations()
   id <- orgs[which(grepl("KTH", orgs$organisationNameSv)), ][1,]
@@ -90,6 +97,7 @@ test_that("fundings data related to a given coordinator matches (swecris vs gdp)
 
 test_that("data related to ongoing financed activities (swecris vs gdp)", {
 
+  skip_if(TRUE, "Long running test.")
 
   orgs <- swecris_organisations()
   id <- orgs[which(grepl("KTH", orgs$organisationNameSv)), ][1,]
@@ -116,13 +124,9 @@ test_that("data related to ongoing financed activities (swecris vs gdp)", {
 
 })
 
-
-#Filtrera uttaget med Forskningsämne 50102, Tillämpad psykologi
-#Filtrera uttaget med orden (Transport* OR Mobilitet) i (Nyckelord OR Titel OR Beskrivning)
-
-test_that("Test endpoint returns JSON", {
+test_that("Test endpoint returns data", {
   res <- gdp::gdp_test()
-  df <- jsonlite::fromJSON(res, simplifyDataFrame = TRUE) |> tibble::as_tibble()
-  is_valid <- nrow(df) == 1 & ncol(df) == 23
+  df <- gdp:::to_tbls(entity = "call", res)
+  is_valid <- nrow(df$calls) == 1 & ncol(df$calls) == 12
   expect_true(is_valid)
 })

@@ -1,15 +1,26 @@
 gdp_base_url <- function()
-  "https://utv.api.vinnova.se/ansokningar/v1"
+  "https://test.api.vinnova.se/gdp/v1"
 
 gdp_config <- function() {
   list(
-    token = "cbab271c3107463ab77860ae3e688a22"
+#    token = "cbab271c3107463ab77860ae3e688a22"
+    token = "ceeaa063552f4fe6bc62a0e706b29dae"
   )
 }
 
 #Sys.setenv(GDP_KEY = gdp_config()$token)
 
-gdp_resources <- function() list(proposals = "/ansokningar")
+gdp_resources <- function() {
+  list(
+    proposals = "/ansokningar",
+    proposal = "/ansokningar/{id}",
+    calls = "/utlysningar",
+    call = "/utlysningar/{id}",
+    fundings = "/finansieradeaktiviteter",
+    funding = "/finansieradeaktiviteter/{id}",
+    metadata = "/metadata"
+  )
+}
 
 gdp_api_key <- function() {
 
@@ -33,27 +44,47 @@ is_testing <- function() {
 }
 
 testing_key <- function() {
-  httr2::secret_decrypt("BWO6DHa7HPjDzpnZxAgmSPEfkRwv_b7CbHfKLYOb8Zm0nEPlo7i6MJ6WhOgvPooV", "GDP_KEY")
+#  httr2::secret_decrypt("BWO6DHa7HPjDzpnZxAgmSPEfkRwv_b7CbHfKLYOb8Zm0nEPlo7i6MJ6WhOgvPooV", "GDP_KEY")
+  httr2::secret_decrypt("oRAyG1FYJml1qabHqKDuFfpDsH4veb5mVipzqZdaijMFES5QgPZVqxCveLRTKlFe", "GDP_KEY")
 }
 
 #' @import httr
 #' @import lubridate
 #' @import jsonlite
 #' @import tibble
-gdp_request <- function(resource = gdp_resources(), ...) {
+#' @importFrom glue glue
+gdp_request <- function(resource = gdp_resources(), verbosity = 0, id = NULL, filter = NULL, ...) {
 
   params <- list(
     ...
   )
 
-  gdp_base_url() |>
+  dotz <- c(filter, params)
+
+  if (verbosity > 0) {
+    if (!is.null(dotz)) message("Filter params: ", print(dotz))
+  }
+
+  if (!is.null(id))
+    resource <- glue::glue(resource, id = id)
+
+  resp <-
+    gdp_base_url() |>
     httr2::request() |>
     httr2::req_url_path_append(resource) |>
-    httr2::req_url_query(!!!params) |>
-    httr2::req_headers(`api-nyckel` = gdp_api_key()) |>
+    httr2::req_url_query(!!!dotz) |>
+    httr2::req_headers(`Authorization` = gdp_api_key()) |>
     httr2::req_user_agent("gdp R client (https://github.com/kth-library/gdp)") |>
-    httr2::req_perform() |>
-    httr2::resp_body_json()
+    httr2::req_perform(verbosity = verbosity)
+
+  n <- httr2::resp_header(resp, header = "x-totalrecords") |> as.integer()
+
+  if (verbosity > 0) message("Total records: ", n)
+
+  structure(
+    resp,
+    n = n
+  )
 }
 
 #' Request the gdp test endpoint
@@ -61,6 +92,167 @@ gdp_request <- function(resource = gdp_resources(), ...) {
 #' @return string with the test response in JSON
 #' @export
 gdp_test <- function() {
-  gdp_request() |> jsonlite::toJSON(pretty = TRUE)
+  gdp_request(gdp_resources()$calls, filter = gdp_filter(limit = 1)) |>
+    parse_response()
+}
+
+parse_response <- function(resp) {
+
+  n <- attr(resp, "n")
+
+  json <-
+    resp |>
+    httr2::resp_body_string() |>
+    jsonlite::fromJSON(simplifyDataFrame = FALSE)
+
+  structure(
+    json,
+    n = n
+  )
+}
+
+gdp_calls <- function(id = NULL, filter = gdp_filter(type = "calls")) {
+  if (is.null(id))
+    gdp_request(gdp_resources()$calls, filter = filter) |>
+    parse_response()
+  else
+    gdp_request(gdp_resources()$call, id = id, filter= filter) |>
+    parse_response()
+}
+
+gdp_proposals <- function(id = NULL, filter = gdp_filter(type = "proposals")) {
+  if (is.null(id))
+    gdp_request(gdp_resources()$proposals, filter = filter) |>
+    parse_response()
+  else
+    gdp_request(gdp_resources()$proposal, id = id, filter= filter) |>
+    parse_response()
+}
+
+gdp_fundings <- function(id = NULL, filter = gdp_filter(type = "fundings")) {
+  if (is.null(id))
+    gdp_request(gdp_resources()$fundings, filter = filter) |>
+    parse_response()
+  else
+    gdp_request(gdp_resources()$fundings, id = id, filter= filter) |>
+    parse_response()
+}
+
+#' @importFrom rlang list2
+gdp_filter <- function(type = c("calls", "proposals", "fundings"),
+    offset = NULL, limit = NULL,
+    program_id = NULL, call_id = NULL, org_id = NULL,
+    amount_min = NULL, amount_max = NULL,
+    ts_from = NULL, ts_to = NULL,
+    date_from = NULL, date_to = NULL,
+    status = NULL) {
+
+  # TODO: ts_* needs to be formatted as YYYY-MM-DDTHH:MM:SSZ
+
+  filters <- rlang::list2()
+
+  filter_type <-
+    switch(match.arg(type),
+      calls = "calls",
+      proposals = "proposals",
+      fundings = "fundings"
+    )
+
+  if (filter_type %in% c("proposals", "fundings")) {
+    filters <- rlang::list2(
+      programDiarienummer = program_id,
+      utlysningDiarienummer = call_id,
+      organisationsNummer = org_id,
+      minBeslutadFinansieringsBelopp = amount_min,
+      maxBeslutadFinansieringsBelopp = amount_max,
+      franBeslutDatum = date_from,
+      tillBeslutDatum = date_to,
+      franTidpunkt = ts_from,
+      tillTidpunkt = ts_to,
+      status = status
+    ) |> purrr::compact()
+
+  } else {
+    filters <- rlang::list2(
+      programDiarienummer = program_id,
+      franTidpunkt = ts_from,
+      tillTidpunkt = ts_to,
+      status = status
+    ) |> purrr::compact()
+
+  }
+
+  purrr::list_assign(filters, offset = offset, limit = limit) |> purrr::compact()
+
+}
+
+gdp_meta <- function() {
+  gdp_request(gdp_resources()$meta) |> parse_response()
+}
+
+#' @importFrom utils browseURL
+gdp_docs <- function() {
+  "https://salmon-rock-0b47a7d03.4.azurestaticapps.net/" |>
+    browseURL()
+}
+
+filter_unnested <- function(x)
+  x[sapply(x, \(x) !is.list(x))]
+
+#' @importFrom readr type_convert
+to_tbl <- function(o)
+  o |> purrr::map(filter_unnested) |>
+  purrr::map_dfr(dplyr::bind_rows) |>
+  readr::type_convert() |>
+  suppressMessages()
+
+#' @importFrom purrr map map_dfr
+#' @importFrom tidyr unnest
+#' @importFrom dplyr bind_rows bind_cols select mutate filter any_of
+to_tbls <- function(entity = c("calls", "proposals", "fundings"), o) {
+
+  e <- match.arg(entity, c("calls", "proposals", "fundings"))
+  res <- switch(e,
+    calls = {
+      list(
+        calls = o |> to_tbl(),
+        links = o |> purrr::map("lank") |> to_tbl(),
+        programs = o |> purrr::map("program") |> to_tbl()
+      )
+    },
+    proposals = {
+      list(
+        proposals = o |> map(filter_unnested) |> to_tbl(),
+        programs = o |> map("program", filter_unnested) |> to_tbl(),
+        calls = o |> map("utlysning") |> map(filter_unnested) |> to_tbl(),
+        links = o |> map("lank") |> to_tbl(),
+        decisions = o |> map("beslut") |> to_tbl(),
+        topic = o |> map("forskningsamne") |> map_dfr(dplyr::bind_rows),
+        funder_category = o |> map("kategoriseringfinansiar") |> map_dfr(dplyr::bind_rows)
+      )
+    },
+    fundings = {
+      list(
+        fundings = o |> map(filter_unnested) |> to_tbl(),
+        programs = o |> map("program", filter_unnested) |> to_tbl(),
+        calls = o |> map("utlysning") |> map(filter_unnested) |> to_tbl(),
+        links = o |> map("lank") |> to_tbl(),
+        decisions = o |> map("beslut") |> to_tbl(),
+        topic = o |> map("forskningsamne") |> map_dfr(dplyr::bind_rows),
+        funder_category = o |> map("kategoriseringfinansiar") |> map_dfr(dplyr::bind_rows),
+        sdgs = o |> map("hallbarhetsmal") |> map_dfr(dplyr::bind_rows),
+        funding_decisions =
+          o |> map("beslutadFinansiering") |> map_dfr(dplyr::bind_rows) |>
+          dplyr::select(-any_of(c("finansieradOrganisation"))),
+        funded_orgs = o |> map("beslutadFinansiering") |> map_dfr(dplyr::bind_rows) |>
+          dplyr::pull("finansieradOrganisation") |> map_dfr(dplyr::bind_rows) |>
+          tidyr::unnest(c("roll")),
+        persons = o |> map("personer") |> map_dfr(dplyr::bind_rows) |> tidyr::unnest(c("roll")),
+        orgs = o |> map("organisationer") |> map_dfr(dplyr::bind_rows) |> tidyr::unnest(c("roll"))
+      )
+    }
+  )
+
+  return(res)
 }
 
