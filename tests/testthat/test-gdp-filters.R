@@ -25,7 +25,7 @@ test_that("getting to the openapi/swagger docs static webpage works", {
 
 test_that("ISSUE: getting to the openapi/swagger docs webpage referenced by the metadata works", {
   url <- gdp_meta()$apiDocumentation
-  expect_error(httr2::request(url) |> httr2::req_perform(), "no alternative certificate subject name matches")
+  expect_error(httr2::request(url) |> httr2::req_perform(), "SSL peer certificate or SSH remote key was not OK")
 })
 
 test_that("one financed activity (funding) is returned for a specific org (KTH)", {
@@ -153,7 +153,7 @@ test_that("getting calls updated in a specific timeperiod works", {
 
 })
 
-test_that("tabels can be parsed from nested json responses", {
+test_that("tables can be parsed from nested json responses", {
 
   o1 <- gdp_calls(filter = gdp_filter("calls", limit = 10))
   o2 <- gdp_proposals(filter = gdp_filter("proposals", limit = 10))
