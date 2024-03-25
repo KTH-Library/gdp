@@ -114,8 +114,8 @@ test_that("getting funded activities ('fundings') filter for first week of this 
 
   res <- gdp_fundings(
     filter = gdp_filter(type = "fundings", limit = 10,
-    date_from = beg,
-    date_to = end
+      decision_from_date = beg,
+      decision_to_date = end
     )
   )
 
@@ -135,8 +135,8 @@ test_that("getting calls updated in a specific timeperiod works", {
 
   res <- gdp_calls(
     filter = gdp_filter(type = "calls", limit = 10,
-    ts_from = beg,
-    ts_to = end
+      updated_from_ts = beg,
+      updated_to_ts = end
     )
   )
 

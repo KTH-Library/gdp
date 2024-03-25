@@ -143,8 +143,8 @@ gdp_filter <- function(type = c("calls", "proposals", "fundings"),
     offset = NULL, limit = NULL,
     program_id = NULL, call_id = NULL, org_id = NULL,
     amount_min = NULL, amount_max = NULL,
-    ts_from = NULL, ts_to = NULL,
-    date_from = NULL, date_to = NULL,
+    updated_from_ts = NULL, updated_to_ts = NULL,
+    decision_from_date = NULL, decision_to_date = NULL,
     status = NULL) {
 
   # TODO: ts_* needs to be formatted as YYYY-MM-DDTHH:MM:SSZ
@@ -165,18 +165,25 @@ gdp_filter <- function(type = c("calls", "proposals", "fundings"),
       organisationsNummer = org_id,
       minBeslutadFinansieringsBelopp = amount_min,
       maxBeslutadFinansieringsBelopp = amount_max,
-      franBeslutDatum = date_from,
-      tillBeslutDatum = date_to,
-      franTidpunkt = ts_from,
-      tillTidpunkt = ts_to,
+      franBeslutDatum = decision_from_date,
+      tillBeslutDatum = decision_to_date,
+      franTidpunkt = updated_from_ts,
+      tillTidpunkt = updated_to_ts,
       status = status
     ) |> purrr::compact()
 
   } else {
+
+    uses_valid_call_args <- all(c(
+        call_id, org_id, amount_min, amount_max,
+        decision_from_date, decision_to_date
+      ) |> sapply(is.null))
+    stopifnot(uses_valid_call_args)
+
     filters <- rlang::list2(
       programDiarienummer = program_id,
-      franTidpunkt = ts_from,
-      tillTidpunkt = ts_to,
+      franTidpunkt = updated_from_ts,
+      tillTidpunkt = updated_to_ts,
       status = status
     ) |> purrr::compact()
 
