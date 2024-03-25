@@ -1,0 +1,24 @@
+# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
+# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/havest.yaml'
+  schedule:
+    - cron: '5 4 * * *' # https://crontab.guru/#0_7_*_*_*
+
+name: Harvest GDP data for KTH
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    container: ghcr.io/kth-library/kontarion
+    timeout-minutes: 20
+    env:
+      MC_HOST_kthb: ${{ secrets.MC_HOST_KTHB }}
+      TZ: Europe/Stockholm
+    steps:
+      - run: |
+          R -e 'remotes::install_github("KTH-Library/gdp")'
+          R -e 'library(gdp); gdp_upload_files(sourcedir = gdp_harvest(), s3_targetdir = "kthb/projects/gdp")'
