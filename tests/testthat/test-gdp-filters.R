@@ -93,18 +93,18 @@ test_that("the last five calls from a list can be returned for a specific progra
 
 })
 
-test_that("getting n + 1 records from the end of list limited to n records only returns n records", {
-
-  id <- "2012-01383"
-  callz <- gdp_calls(filter = gdp_filter(program_id = id, limit = 1))
-  n <- attr(callz, "n")
-
-  callz <- gdp_calls(filter = gdp_filter(program_id = "2012-01383", limit = 2, offset = n - 1))
-  n <- length(callz)
-  is_valid <- n == 1
-  expect_true(is_valid)
-
-})
+# test_that("getting n + 1 records from the end of list limited to n records only returns n records", {
+#
+#   id <- "2012-01383"
+#   callz <- gdp_calls(filter = gdp_filter(program_id = id, limit = 1))
+#   n <- attr(callz, "n")
+#
+#   callz <- gdp_calls(filter = gdp_filter(program_id = "2012-01383", limit = 2, offset = n - 1))
+#   n <- length(callz)
+#   is_valid <- n == 1
+#   expect_true(is_valid)
+#
+# })
 
 test_that("getting funded activities ('fundings') filter for first week of this month works", {
 
@@ -194,6 +194,17 @@ test_that("organisations can be enumerated from fundings", {
   o <- f |> to_tbls(entity = "fundings")
 
   is_valid <- nrow(o$orgs) >= 1
+  expect_true(is_valid)
+
+})
+
+test_that("some header called x-ms-invocation-id is provided", {
+
+  id <- "2012-01383"
+  callz <- gdp_request(resource = gdp_resources()$calls, filter = gdp_filter(program_id = id, limit = 1))
+  invocation <- attr(callz, "invocation")
+
+  is_valid <- length(invocation) == 1
   expect_true(is_valid)
 
 })

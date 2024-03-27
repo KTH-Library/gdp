@@ -290,9 +290,6 @@ to_tbls_proposals <- function(x) {
     readr::type_convert() |> suppressMessages() |>
     dplyr::rename_with(cols_rename, entity = "call")
 
-    # "utlysning"
-
-
   list(
     proposals = one_to_one, links = links, programs = programs,
     organisations = orgs, persons = persons, decisions = decisions,
@@ -404,7 +401,7 @@ to_tbls_fundings <- function(x) {
     dplyr::rename_with(cols_rename, entity = "sdg")
 
   list(
-    proposals = one_to_one, links = links, programs = programs,
+    fundings = one_to_one, links = links, programs = programs,
     organisations = orgs, persons = persons, decisions = decisions,
     topics = topics, categories = categories, calls = calls,
     payouts = payouts, sdgs = sdgs

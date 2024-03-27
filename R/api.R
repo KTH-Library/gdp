@@ -78,12 +78,14 @@ gdp_request <- function(resource = gdp_resources(), verbosity = 0, id = NULL, fi
     httr2::req_perform(verbosity = verbosity)
 
   n <- httr2::resp_header(resp, header = "x-totalrecords") |> as.integer()
+  invocation <- httr2::resp_header(resp, header = "x-ms-invocation-id")
 
   if (verbosity > 0) message("Total records: ", n)
 
   structure(
     resp,
-    n = n
+    n = n,
+    invocation = invocation
   )
 }
 
@@ -99,6 +101,7 @@ gdp_test <- function() {
 parse_response <- function(resp) {
 
   n <- attr(resp, "n")
+  invocation <- attr(resp, "invocation")
 
   json <-
     resp |>
@@ -107,7 +110,8 @@ parse_response <- function(resp) {
 
   structure(
     json,
-    n = n
+    n = n,
+    invocation = invocation
   )
 }
 
@@ -134,7 +138,10 @@ gdp_fundings <- function(id = NULL, filter = gdp_filter(type = "fundings")) {
     gdp_request(gdp_resources()$fundings, filter = filter) |>
     parse_response()
   else
-    gdp_request(gdp_resources()$fundings, id = id, filter= filter) |>
+    gdp_request(gdp_resources()$funding,
+      id = id,
+      filter = filter,
+      verbosity = 1) |>
     parse_response()
 }
 
