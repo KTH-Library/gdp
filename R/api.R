@@ -205,9 +205,10 @@ gdp_meta <- function() {
 }
 
 #' @importFrom utils browseURL
-gdp_docs <- function() {
-  "https://salmon-rock-0b47a7d03.4.azurestaticapps.net/" |>
-    browseURL()
+gdp_docs <- function(only_swagger = FALSE) {
+  url <- "https://nice-sand-09c980403.4.azurestaticapps.net"
+  if (!only_swagger) url <- paste0(url, "/documentation.html")
+  url |> browseURL()
 }
 
 filter_unnested <- function(x)
