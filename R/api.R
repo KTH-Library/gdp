@@ -3,8 +3,7 @@ gdp_base_url <- function()
 
 gdp_config <- function() {
   list(
-#    token = "cbab271c3107463ab77860ae3e688a22"
-    token = "ceeaa063552f4fe6bc62a0e706b29dae"
+    token = "113d769b1f0b4f708b69855520588fea"
   )
 }
 
@@ -169,7 +168,7 @@ gdp_filter <- function(type = c("calls", "proposals", "fundings"),
     filters <- rlang::list2(
       programDiarienummer = program_id,
       utlysningDiarienummer = call_id,
-      organisationsNummer = org_id,
+      Organisationsnummer = org_id,
       minBeslutadFinansieringsBelopp = amount_min,
       maxBeslutadFinansieringsBelopp = amount_max,
       franBeslutDatum = decision_from_date,
@@ -205,10 +204,17 @@ gdp_meta <- function() {
 }
 
 #' @importFrom utils browseURL
-gdp_docs <- function(only_swagger = FALSE) {
+gdp_docs <- function(only_swagger = FALSE, browse = TRUE) {
   url <- "https://nice-sand-09c980403.4.azurestaticapps.net"
   if (!only_swagger) url <- paste0(url, "/documentation.html")
-  url |> browseURL()
+  if (browse && interactive()) url |> browseURL()
+  return (url)
+}
+
+gdp_signup <- function(browse = TRUE) {
+  url <- "https://portal.test.api.vinnova.se/"
+  if (browse && interactive()) url |> browseURL()
+  return (url)
 }
 
 filter_unnested <- function(x)
@@ -226,6 +232,8 @@ to_tbl <- function(o)
 #' @importFrom dplyr bind_rows bind_cols select mutate filter any_of
 to_tbls <- function(entity = c("calls", "proposals", "fundings"), o) {
 
+  # TODO: replace with calls to "to_tbls_*" instead?
+
   e <- match.arg(entity, c("calls", "proposals", "fundings"))
   res <- switch(e,
     calls = {
@@ -242,8 +250,8 @@ to_tbls <- function(entity = c("calls", "proposals", "fundings"), o) {
         calls = o |> map("utlysning") |> map(filter_unnested) |> to_tbl(),
         links = o |> map("lank") |> to_tbl(),
         decisions = o |> map("beslut") |> to_tbl(),
-        topic = o |> map("forskningsamne") |> map_dfr(dplyr::bind_rows),
-        funder_category = o |> map("kategoriseringfinansiar") |> map_dfr(dplyr::bind_rows)
+        topic = o |> map("forskningsamnen") |> map_dfr(dplyr::bind_rows),
+        funder_category = o |> map("kategoriseringFinansiar") |> map_dfr(dplyr::bind_rows)
       )
     },
     fundings = {
@@ -253,8 +261,8 @@ to_tbls <- function(entity = c("calls", "proposals", "fundings"), o) {
         calls = o |> map("utlysning") |> map(filter_unnested) |> to_tbl(),
         links = o |> map("lank") |> to_tbl(),
         decisions = o |> map("beslut") |> to_tbl(),
-        topic = o |> map("forskningsamne") |> map_dfr(dplyr::bind_rows),
-        funder_category = o |> map("kategoriseringfinansiar") |> map_dfr(dplyr::bind_rows),
+        topic = o |> map("forskningsamnen") |> map_dfr(dplyr::bind_rows),
+        funder_category = o |> map("kategoriseringFinansiar") |> map_dfr(dplyr::bind_rows),
         sdgs = o |> map("hallbarhetsmal") |> map_dfr(dplyr::bind_rows),
         funding_decisions =
           o |> map("beslutadFinansiering") |> map_dfr(dplyr::bind_rows) |>

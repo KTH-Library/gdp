@@ -41,9 +41,9 @@ proposals <- gdp_proposals(filter = gdp_filter(type = "proposals", org_id = my_o
 calls <- gdp_calls()
 
 # convert results to tabular (relational) data format
-my_fundings <- fundings |> to_tbls_fundings()
-my_proposals <- proposals |> to_tbls_proposals() 
-my_calls <- calls |> to_tbls_calls()
+my_fundings <- fundings |> gdp:::to_tbls_fundings()
+my_proposals <- proposals |> gdp:::to_tbls_proposals() 
+my_calls <- calls |> gdp:::to_tbls_calls()
 
 # persist data in a local database
 
@@ -90,7 +90,7 @@ my_orgid <- "202100-3054"  # KTHs organisation id used in GDP
 
 my_proposals <- 
   gdp_proposals(filter = gdp_filter(type = "proposals", org_id = my_orgid)) |> 
-  to_tbls_proposals()
+  gdp:::to_tbls_proposals()
 
 
 # proposals related to transport systems and logistics or has code which begins w "2.1.04"

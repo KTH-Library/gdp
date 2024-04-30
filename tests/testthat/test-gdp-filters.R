@@ -14,10 +14,12 @@ test_that("metadata is returned", {
 
 test_that("getting to the openapi/swagger docs static webpage works", {
 
- res <-
-   "https://salmon-rock-0b47a7d03.4.azurestaticapps.net" |>
-    httr2::request() |>
-    httr2::req_perform()
+  url_docs <- gdp_docs(only_swagger = TRUE, browse = FALSE)
+
+  res <-
+      url_docs |>
+      httr2::request() |>
+      httr2::req_perform()
 
   is_valid <- httr2::resp_body_string(res) |> grepl(pattern = "swagger-ui.css")
   expect_true(is_valid)
@@ -25,7 +27,8 @@ test_that("getting to the openapi/swagger docs static webpage works", {
 
 test_that("ISSUE: getting to the openapi/swagger docs webpage referenced by the metadata works", {
   url <- gdp_meta()$apiDocumentation
-  expect_error(httr2::request(url) |> httr2::req_perform(), "SSL peer certificate or SSH remote key was not OK")
+  expect_error(httr2::request(url) |> httr2::req_perform())
+  #expect_error(httr2::request(url) |> httr2::req_perform(), "SSL peer certificate or SSH remote key was not OK")
 })
 
 test_that("one financed activity (funding) is returned for a specific org (KTH)", {
@@ -39,7 +42,7 @@ test_that("one financed activity (funding) is returned for a specific org (KTH)"
   is_valid <-
     attr(fundings, "n") > 1000 &
     length(fundings) == 1 &
-    fundings[[1]]$organisationer[[1]]$organisationsNummer == my_orgid
+    fundings[[1]]$organisationer[[1]]$organisationsnummer == my_orgid
 
   expect_true(is_valid)
 
@@ -119,7 +122,7 @@ test_that("getting funded activities ('fundings') filter for first week of this 
     )
   )
 
-  datez <- res |> purrr::map_chr(c("beslut", "beslutsdatum")) |> as.Date()
+  datez <- res |> purrr::map_chr(c("beslut", "datum")) |> as.Date()
 
   # the limits are inclusive?
 
@@ -159,11 +162,11 @@ test_that("tables can be parsed from nested json responses", {
   o2 <- gdp_proposals(filter = gdp_filter("proposals", limit = 10))
   o3 <- gdp_fundings(filter = gdp_filter("fundings", limit = 10))
 
-  t1 <- o1 |> to_tbls(entity = "calls")
-  t2 <- o2 |> to_tbls(entity = "proposals")
-  t3 <- o3 |> to_tbls(entity = "fundings")
+  t1 <- o1 |> to_tbls_calls()
+  t2 <- o2 |> to_tbls_proposals()
+  t3 <- o3 |> to_tbls_fundings()
 
-  is_valid <- nrow(t1$calls) == nrow(t2$proposals)
+  is_valid <- nrow(t1$calls) > 0 & nrow(t2$proposals) > 0 & nrow(t3$fundings) > 0
   expect_true(is_valid)
 
 })
@@ -171,7 +174,7 @@ test_that("tables can be parsed from nested json responses", {
 test_that("programs can be enumerated from calls", {
 
   o1 <- gdp_calls(filter = gdp_filter("calls", limit = 10))
-  t1 <- o1 |> to_tbls(entity = "calls")
+  t1 <- o1 |> to_tbls_calls()
 
   is_valid <- nrow(t1$programs) >= 1
   expect_true(is_valid)
@@ -181,7 +184,7 @@ test_that("programs can be enumerated from calls", {
 test_that("persons can be enumerated from fundings", {
 
   f <- gdp_fundings(filter = gdp_filter("fundings", limit = 10))
-  p <- f |> to_tbls(entity = "fundings")
+  p <- f |> to_tbls_fundings()
 
   is_valid <- nrow(p$persons) >= 1
   expect_true(is_valid)
@@ -191,9 +194,9 @@ test_that("persons can be enumerated from fundings", {
 test_that("organisations can be enumerated from fundings", {
 
   f <- gdp_fundings(filter = gdp_filter("fundings", limit = 10))
-  o <- f |> to_tbls(entity = "fundings")
+  o <- f |> to_tbls_fundings()
 
-  is_valid <- nrow(o$orgs) >= 1
+  is_valid <- nrow(o$organisations) >= 1
   expect_true(is_valid)
 
 })

@@ -77,8 +77,8 @@ mapping_cols_person <- function(x) {
 
 mapping_cols_decision <- function(x) {
   list(
-    decision_date = "beslutsdatum",
-    decision_type = "beslutstyp",
+    decision_date = "datum",
+    decision_type = "typ",
     decision_outcome = "utfall"
   )
 }
@@ -102,7 +102,8 @@ mapping_cols_funding <- function(x) {
     funding_orgname = "finansiarNamn",
     funding_orgid = "finansiarOrganisationsnummer",
     funding_type = "typ",
-    title = "titel",
+    title_eng = "titelEng",
+    title_swe = "titel",
     desc = "beskrivning",
     desc_eng = "beskrivningEng",
     date_beg = "startdatum",
@@ -199,8 +200,8 @@ to_tbls_calls <- function(x) {
 
   programs <-
     x |> purrr::transpose() |> tibble::as_tibble() |>
-    dplyr::mutate(program = purrr::pmap(list(diarienummer, program), \(a, b) c(id_call = a, b))) |>
-    dplyr::pull("program") |> dplyr::bind_rows() |>
+    dplyr::mutate(program = purrr::pmap(list(diarienummer, program), \(a, b) c(id_call = a, unlist(b)))) |>
+    dplyr::pull("program") |> bind_rows() |>
     readr::type_convert() |> suppressMessages() |>
     dplyr::rename_with(cols_rename, entity = "program")
 
@@ -211,15 +212,15 @@ to_tbls_calls <- function(x) {
 to_tbls_proposals <- function(x) {
 
   diarienummer <- lank <- program <- organisationer <- personer <-
-    beslut <- forskningsamne <- kategoriseringfinansiar <-
+    beslut <- forskningsamnen <- kategoriseringFinansiar <-
     utlysning <- NULL
 
   one_to_many <- c(
     "lank", "program",
     "organisationer", "personer",
     "beslut",
-    "forskningsamne",
-    "kategoriseringfinansiar",
+    "forskningsamnen",
+    "kategoriseringFinansiar",
     "utlysning"
   )
 
@@ -270,14 +271,14 @@ to_tbls_proposals <- function(x) {
 
   topics <-
     x |> purrr::transpose() |> tibble::as_tibble() |>
-    dplyr::mutate(topic = purrr::pmap(list(diarienummer, forskningsamne), \(a, b) c(id_proposal = a, bind_rows(b)))) |>
+    dplyr::mutate(topic = purrr::pmap(list(diarienummer, forskningsamnen), \(a, b) c(id_proposal = a, bind_rows(b)))) |>
     dplyr::pull("topic") |> dplyr::bind_rows() |>
     readr::type_convert() |> suppressMessages() |>
     dplyr::rename_with(cols_rename, entity = "topic")
 
   categories <-
     x |> purrr::transpose() |> tibble::as_tibble() |>
-    dplyr::mutate(categories = purrr::pmap(list(diarienummer, kategoriseringfinansiar), \(a, b) c(id_proposal = a, bind_rows(b)))) |>
+    dplyr::mutate(categories = purrr::pmap(list(diarienummer, kategoriseringFinansiar), \(a, b) c(id_proposal = a, bind_rows(b)))) |>
     dplyr::pull("categories") |> dplyr::bind_rows() |>
     readr::type_convert() |> suppressMessages() |>
     dplyr::rename_with(cols_rename, entity = "category")
@@ -301,7 +302,7 @@ to_tbls_proposals <- function(x) {
 to_tbls_fundings <- function(x) {
 
   diarienummer <- lank <- program <- organisationer <-
-    forskningsamne <- kategoriseringfinansiar <-
+    forskningsamnen <- kategoriseringFinansiar <-
     utlysning <- beslutadFinansiering <-
     belopp <- hallbarhetsmal <- beslut <- personer <- NULL
 
@@ -310,8 +311,8 @@ to_tbls_fundings <- function(x) {
     "organisationer", "personer",
     "beslut",
     "beslutadFinansiering",
-    "forskningsamne",
-    "kategoriseringfinansiar",
+    "forskningsamnen",
+    "kategoriseringFinansiar",
     "utlysning",
     "hallbarhetsmal"
   )
@@ -363,14 +364,14 @@ to_tbls_fundings <- function(x) {
 
   topics <-
     x |> purrr::transpose() |> tibble::as_tibble() |>
-    dplyr::mutate(topic = purrr::pmap(list(diarienummer, forskningsamne), \(a, b) c(id_funding = a, bind_rows(b)))) |>
+    dplyr::mutate(topic = purrr::pmap(list(diarienummer, forskningsamnen), \(a, b) c(id_funding = a, bind_rows(b)))) |>
     dplyr::pull("topic") |> dplyr::bind_rows() |>
     readr::type_convert() |> suppressMessages() |>
     dplyr::rename_with(cols_rename, entity = "topic")
 
   categories <-
     x |> purrr::transpose() |> tibble::as_tibble() |>
-    dplyr::mutate(categories = purrr::pmap(list(diarienummer, kategoriseringfinansiar), \(a, b) c(id_funding = a, bind_rows(b)))) |>
+    dplyr::mutate(categories = purrr::pmap(list(diarienummer, kategoriseringFinansiar), \(a, b) c(id_funding = a, bind_rows(b)))) |>
     dplyr::pull("categories") |> dplyr::bind_rows() |>
     readr::type_convert() |> suppressMessages() |>
     dplyr::rename_with(cols_rename, entity = "category")
@@ -384,14 +385,25 @@ to_tbls_fundings <- function(x) {
     dplyr::rename_with(cols_rename, entity = "call")
 
   payouts <-
-    x |> purrr::transpose() |> tibble::as_tibble() |>
-    dplyr::mutate(payouts = purrr::pmap(list(diarienummer, beslutadFinansiering), \(a, b) c(id_funding = a, bind_rows(b)))) |>
-    dplyr::pull("payouts") |> dplyr::bind_rows() |>
-    tidyr::unnest_wider("finansieradOrganisation") |>
-    tidyr::unnest("roll") |> tidyr::unnest("roll") |>
-    dplyr::filter(belopp > 0) |>
-    readr::type_convert() |> suppressMessages() |>
-    dplyr::rename_with(cols_rename, entity = "payout")
+    # x |> purrr::transpose() |> tibble::as_tibble() |>
+    # dplyr::mutate(payouts = purrr::pmap(list(diarienummer, beslutadFinansiering), \(a, b) c(id_funding = a, bind_rows(b)))) |>
+    # dplyr::pull("payouts") |> dplyr::bind_rows() |>
+    # dplyr::rowwise() |>
+    # mutate(finansieradOrganisation = ifelse(is.list(finansieradOrganisation), unlist(finansieradOrganisation), finansieradOrganisation)) |>
+    # dplyr::ungroup() |>
+    # tidyr::pivot_wider(values_from = "finansieradOrganisation") |>
+    # tidyr::unnest("roll") |> tidyr::unnest("roll") |>
+
+    x |> tibble::enframe() |>
+      tidyr::unnest_wider("value") |>
+      dplyr::select(c("diarienummer", "beslutadFinansiering")) |>
+      tidyr::unnest("beslutadFinansiering") |>
+      tidyr::unnest_wider("beslutadFinansiering") |>
+      tidyr::unnest_wider("finansieradOrganisation") |>
+      tidyr::unnest("roll") |> tidyr::unnest("roll") |>
+      dplyr::filter(belopp > 0) |>
+      readr::type_convert() |> suppressMessages() |>
+      dplyr::rename_with(cols_rename, entity = "payout")
 
   sdgs <-
     x |> purrr::transpose() |> tibble::as_tibble() |>

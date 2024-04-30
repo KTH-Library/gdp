@@ -1,6 +1,6 @@
 Package: gdp
 Title: Tools for GDP
-Version: 0.0.0.9000
+Version: 0.0.1
 Authors@R: 
     person("Markus", "Skyttner", , "markussk@kth.se", role = c("aut", "cre"))
 Description: Tools for GDP provide tests and other facilities and resources
@@ -8,7 +8,7 @@ Description: Tools for GDP provide tests and other facilities and resources
 License: AGPL (>= 3) + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1
 Suggests: 
     testthat,
     waldo,
