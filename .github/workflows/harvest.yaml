@@ -6,7 +6,7 @@ on:
     paths:
       - '.github/workflows/havest.yaml'
   schedule:
-    - cron: '5 4 * * *' # https://crontab.guru/#0_7_*_*_*
+    - cron: '5 4 * * *' # https://crontab.guru/#5_4_*_*_*
 
 name: Harvest GDP data for KTH
 

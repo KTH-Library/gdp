@@ -121,7 +121,7 @@ gdp_export_tables <- function(harvest, destdir = NULL) {
 gdp_upload_files <- function(sourcedir, s3_targetdir = "kthb/projects/gdp") {
 
   message("Uploading files from ", sourcedir, " to ", s3_targetdir)
-  cmd <- sprintf("mc mirror %s %s", sourcedir, s3_targetdir)
+  cmd <- sprintf("mc mirror --overwrite %s %s", sourcedir, s3_targetdir)
   system(cmd)
 
 }
