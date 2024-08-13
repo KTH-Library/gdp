@@ -5,3 +5,4 @@
 ^\.github$
 ^README\.Rmd$
 inst/extdata/v2
+inst/markdown
