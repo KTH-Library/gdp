@@ -13,11 +13,12 @@ name: Harvest GDP data for KTH
 jobs:
   docker:
     runs-on: ubuntu-latest
-    container: ghcr.io/kth-library/kontarion
     timeout-minutes: 20
-    env:
-      MC_HOST_kthb: ${{ secrets.MC_HOST_KTHB }}
-      TZ: Europe/Stockholm
+    container:
+      image: ghcr.io/kth-library/kontarion
+      env:
+        MC_HOST_kthb: ${{ secrets.MC_HOST_KTHB }}
+        TZ: Europe/Stockholm
     steps:
       - run: |
           mc ls kthb/projects/gdp
