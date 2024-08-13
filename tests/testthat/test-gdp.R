@@ -126,7 +126,7 @@ test_that("data related to ongoing financed activities (swecris vs gdp)", {
 
 test_that("Test endpoint returns data", {
   res <- gdp::gdp_test()
-  df <- gdp:::to_tbls(entity = "call", res)
-  is_valid <- nrow(df$calls) == 1 & ncol(df$calls) == 12
+  df <- gdp:::to_tbls_calls(res)
+  is_valid <- nrow(df$calls) == 1 & ncol(df$calls) >= 12
   expect_true(is_valid)
 })

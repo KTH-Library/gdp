@@ -145,7 +145,13 @@ gdp_export_database <- function(harvest, destdir = NULL) {
     destdir <- file.path(tempdir(check = TRUE), "gdp", "gdp.db")
   }
 
-  con <- DBI::dbConnect(duckdb::duckdb(dbdir = destdir))
+  message("Ensure existing dir: ", dirname(destdir))
+  if (!dir.exists(dirname(destdir))) {
+    is_created <- dir.create(dirname(destdir), showWarnings = TRUE)
+  }
+
+  drv <- duckdb::duckdb()
+  con <- duckdb::dbConnect(drv, dbdir = destdir)
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
 
   purrr::walk2(paste0("view_funding_", names(harvest$fundings)), harvest$fundings,

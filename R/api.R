@@ -78,12 +78,14 @@ gdp_request <- function(resource = gdp_resources(), verbosity = 0, id = NULL, fi
 
   n <- httr2::resp_header(resp, header = "x-totalrecords") |> as.integer()
   invocation <- httr2::resp_header(resp, header = "x-ms-invocation-id")
+  np <- httr2::resp_header(resp, header = "x-next")
 
   if (verbosity > 0) message("Total records: ", n)
 
   structure(
     resp,
     n = n,
+    next = np,
     invocation = invocation
   )
 }
@@ -139,8 +141,7 @@ gdp_fundings <- function(id = NULL, filter = gdp_filter(type = "fundings")) {
   else
     gdp_request(gdp_resources()$funding,
       id = id,
-      filter = filter,
-      verbosity = 1) |>
+      filter = filter) |>
     parse_response()
 }
 

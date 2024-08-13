@@ -12,7 +12,8 @@ mapping_cols_call <- function(x) {
     status = "status",
     date_open = "oppningsdatum",
     date_close = "stangningsdatum",
-    updated_ts = "uppdateringTidpunkt"
+    updated_ts = "uppdateringTidpunkt",
+    call_url = "publiceringsplats"
   )
 }
 
@@ -60,7 +61,7 @@ mapping_cols_proposal <- function(x) {
 mapping_cols_org <- function(x) {
   list(
     org_name = "namn",
-    id_org = "organisationsNummer",
+    id_org = "organisationsnummer",
     country = "land",
     county = "lan",
     role_org = "roll"
@@ -180,7 +181,9 @@ to_tbls_calls <- function(x) {
   diarienummer <- lank <- program <- NULL
 
   one_to_many <- c(
-    "lank", "program"
+    "lank", "program",
+    # Added on Aug 13, 2024
+    "bidragsformer", "stodformer"
   )
 
   one_to_one <-
@@ -221,7 +224,9 @@ to_tbls_proposals <- function(x) {
     "beslut",
     "forskningsamnen",
     "kategoriseringFinansiar",
-    "utlysning"
+    "utlysning",
+    # added on Aug 13, 2024
+    "nyckelord", "hallbarhetsmal", "bidragsformer", "stodformer"
   )
 
   one_to_one <-
@@ -314,11 +319,14 @@ to_tbls_fundings <- function(x) {
     "forskningsamnen",
     "kategoriseringFinansiar",
     "utlysning",
-    "hallbarhetsmal"
+    "hallbarhetsmal",
+   # added on Aug 13, 2024
+    "nyckelord", "bidragsformer", "stodformer"
   )
 
   one_to_one <-
-    x |> purrr::transpose() |> tibble::as_tibble() |>
+    x |> purrr::list_transpose() |> tibble::as_tibble() |>
+#    x |> enframe() |> tidyr::pivot_wider() |>
     tidyr::unnest(-dplyr::all_of(one_to_many)) |>
     dplyr::select(-dplyr::all_of(one_to_many)) |>
     readr::type_convert() |> suppressMessages() |>
@@ -326,21 +334,24 @@ to_tbls_fundings <- function(x) {
     dplyr::rename_with(cols_rename, entity = "funding")
 
   links <-
-    x |> purrr::transpose() |> tibble::as_tibble() |>
-      dplyr::mutate(lank = purrr::pmap(list(diarienummer, lank), \(a, b) c(id_funding = a, b))) |>
-      dplyr::pull("lank") |> dplyr::bind_rows() |>
-      readr::type_convert() |> suppressMessages() |>
-      dplyr::rename_with(cols_rename, entity = "link")
+    x |> purrr::list_transpose() |> tibble::as_tibble() |>
+#    x |> enframe() |> tidyr::pivot_wider() |>
+    dplyr::mutate(lank = purrr::pmap(list(diarienummer, lank), \(a, b) c(id_funding = a, b))) |>
+    dplyr::pull("lank") |> dplyr::bind_rows() |>
+    readr::type_convert() |> suppressMessages() |>
+    dplyr::rename_with(cols_rename, entity = "link")
 
   programs <-
-    x |> purrr::transpose() |> tibble::as_tibble() |>
+    x |> purrr::list_transpose() |> tibble::as_tibble() |>
+#    x |> enframe() |> tidyr::pivot_wider() |>
       dplyr::mutate(program = purrr::pmap(list(diarienummer, program), \(a, b) c(id_funding = a, b))) |>
       dplyr::pull("program") |> dplyr::bind_rows() |>
       readr::type_convert() |> suppressMessages() |>
       dplyr::rename_with(cols_rename, entity = "program")
 
   orgs <-
-    x |> purrr::transpose() |> tibble::as_tibble() |>
+    x |> purrr::list_transpose() |> tibble::as_tibble() |>
+#    x |> enframe() |> tidyr::pivot_wider() |>
     dplyr::mutate(org = purrr::pmap(list(diarienummer, organisationer), \(a, b) c(id_funding = a, bind_rows(b)))) |>
     dplyr::pull("org") |> dplyr::bind_rows() |>
     tidyr::unnest("roll") |>
@@ -348,7 +359,8 @@ to_tbls_fundings <- function(x) {
     dplyr::rename_with(cols_rename, entity = "org")
 
   persons <-
-    x |> purrr::transpose() |> tibble::as_tibble() |>
+    x |> purrr::list_transpose() |> tibble::as_tibble() |>
+#    x |> enframe() |> tidyr::pivot_wider() |>
     dplyr::mutate(person = purrr::pmap(list(diarienummer, personer), \(a, b) c(id_funding = a, bind_rows(b)))) |>
     dplyr::pull("person") |> dplyr::bind_rows() |>
     tidyr::unnest("roll") |>
@@ -356,67 +368,86 @@ to_tbls_fundings <- function(x) {
     dplyr::rename_with(cols_rename, entity = "person")
 
   decisions <-
-    x |> purrr::transpose() |> tibble::as_tibble() |>
+    x |> purrr::list_transpose() |> tibble::as_tibble() |>
+#    x |> enframe() |> tidyr::pivot_wider() |>
     dplyr::mutate(decision = purrr::pmap(list(diarienummer, beslut), \(a, b) c(id_funding = a, bind_rows(b)))) |>
     dplyr::pull("decision") |> dplyr::bind_rows() |>
     readr::type_convert() |> suppressMessages() |>
     dplyr::rename_with(cols_rename, entity = "decision")
 
   topics <-
-    x |> purrr::transpose() |> tibble::as_tibble() |>
+    x |> purrr::list_transpose() |> tibble::as_tibble() |>
+#    x |> enframe() |> tidyr::pivot_wider() |>
     dplyr::mutate(topic = purrr::pmap(list(diarienummer, forskningsamnen), \(a, b) c(id_funding = a, bind_rows(b)))) |>
     dplyr::pull("topic") |> dplyr::bind_rows() |>
     readr::type_convert() |> suppressMessages() |>
     dplyr::rename_with(cols_rename, entity = "topic")
 
-  categories <-
-    x |> purrr::transpose() |> tibble::as_tibble() |>
-    dplyr::mutate(categories = purrr::pmap(list(diarienummer, kategoriseringFinansiar), \(a, b) c(id_funding = a, bind_rows(b)))) |>
-    dplyr::pull("categories") |> dplyr::bind_rows() |>
-    readr::type_convert() |> suppressMessages() |>
-    dplyr::rename_with(cols_rename, entity = "category")
+  # categories <-
+  #   x |> purrr::transpose() |> tibble::as_tibble() |>
+  #   dplyr::mutate(categories = purrr::pmap(list(diarienummer, kategoriseringFinansiar), \(a, b) c(id_funding = a, bind_rows(b)))) |>
+  #   dplyr::pull("categories") |> dplyr::bind_rows() |>
+  #   readr::type_convert() |> suppressMessages() |>
+  #   dplyr::rename_with(cols_rename, entity = "category")
 
-  calls <-
-    x |> purrr::transpose() |> tibble::as_tibble() |>
-    dplyr::mutate(calls = purrr::pmap(list(diarienummer, utlysning), \(a, b) c(id_funding = a, b))) |>
-    dplyr::pull("calls") |> dplyr::bind_rows() |>
-    dplyr::select(-c("lank")) |> dplyr::distinct() |>
-    readr::type_convert() |> suppressMessages() |>
-    dplyr::rename_with(cols_rename, entity = "call")
+#   calls <-
+# #    x |> purrr::transpose() |> tibble::as_tibble() |>
+#     x |> enframe() |> tidyr::pivot_wider() |>
+#     dplyr::mutate(calls = purrr::pmap(list(diarienummer, utlysning), \(a, b) c(id_funding = a, b))) |>
+#     dplyr::pull("calls") |> dplyr::bind_rows() |>
+#     dplyr::select(-c("lank")) |> dplyr::distinct() |>
+#     readr::type_convert() |> suppressMessages() |>
+#     dplyr::rename_with(cols_rename, entity = "call")
 
-  payouts <-
-    # x |> purrr::transpose() |> tibble::as_tibble() |>
-    # dplyr::mutate(payouts = purrr::pmap(list(diarienummer, beslutadFinansiering), \(a, b) c(id_funding = a, bind_rows(b)))) |>
-    # dplyr::pull("payouts") |> dplyr::bind_rows() |>
-    # dplyr::rowwise() |>
-    # mutate(finansieradOrganisation = ifelse(is.list(finansieradOrganisation), unlist(finansieradOrganisation), finansieradOrganisation)) |>
-    # dplyr::ungroup() |>
-    # tidyr::pivot_wider(values_from = "finansieradOrganisation") |>
-    # tidyr::unnest("roll") |> tidyr::unnest("roll") |>
-
-    x |> tibble::enframe() |>
-      tidyr::unnest_wider("value") |>
-      dplyr::select(c("diarienummer", "beslutadFinansiering")) |>
-      tidyr::unnest("beslutadFinansiering") |>
-      tidyr::unnest_wider("beslutadFinansiering") |>
-      tidyr::unnest_wider("finansieradOrganisation") |>
-      tidyr::unnest("roll") |> tidyr::unnest("roll") |>
-      dplyr::filter(belopp > 0) |>
-      readr::type_convert() |> suppressMessages() |>
-      dplyr::rename_with(cols_rename, entity = "payout")
+  # payouts_step_1 <-
+  #   # x |> purrr::transpose() |> tibble::as_tibble() |>
+  #   # View()
+  #   # dplyr::mutate(payouts = purrr::pmap(list(diarienummer, beslutadFinansiering), \(a, b) c(id_funding = a, bind_rows(b)))) |>
+  #   # dplyr::pull("payouts") |> dplyr::bind_rows() |>
+  #   # dplyr::rowwise() |>
+  #   # mutate(finansieradOrganisation = ifelse(is.list(finansieradOrganisation), unlist(finansieradOrganisation), finansieradOrganisation)) |>
+  #   # dplyr::ungroup() |>
+  #   # tidyr::pivot_wider(values_from = "finansieradOrganisation") |>
+  #   # tidyr::unnest("roll") |> tidyr::unnest("roll") |>
+  #
+  #   x |> tibble::enframe() |>
+  #     tidyr::unnest_wider("value") |>
+  #     dplyr::select(c("diarienummer", "beslutadFinansiering")) |>
+  #     filter(!is.na(beslutadFinansiering))
+  #
+  # payouts <- NULL
+  #
+  # if (nrow(payouts_step_1) > 0) {
+  #   payouts <-
+  #     payouts_step_1 |>
+  #     tidyr::unnest("beslutadFinansiering", ptype = list(beslutadFinansiering = integer(0))) |>
+  #     tidyr::unnest_wider("beslutadFinansiering") |>
+  #     tidyr::unnest_wider("finansieradOrganisation") |>
+  #     tidyr::unnest("roll") |> tidyr::unnest("roll") |>
+  #     dplyr::filter(belopp > 0) |>
+  #     readr::type_convert() |> suppressMessages() |>
+  #     dplyr::rename_with(cols_rename, entity = "payout")
+  # }
 
   sdgs <-
-    x |> purrr::transpose() |> tibble::as_tibble() |>
+    x |> purrr::list_transpose() |> tibble::as_tibble() |>
+#    x |> enframe() |> tidyr::pivot_wider() |>
     dplyr::mutate(sdgs = purrr::pmap(list(diarienummer, hallbarhetsmal), \(a, b) c(id_funding = a, bind_rows(b)))) |>
     dplyr::pull("sdgs") |> dplyr::bind_rows() |>
     readr::type_convert() |> suppressMessages() |>
     dplyr::rename_with(cols_rename, entity = "sdg")
 
   list(
-    fundings = one_to_one, links = links, programs = programs,
-    organisations = orgs, persons = persons, decisions = decisions,
-    topics = topics, categories = categories, calls = calls,
-    payouts = payouts, sdgs = sdgs
+    fundings = one_to_one,
+    links = links,
+    programs = programs,
+    organisations = orgs,
+    persons = persons,
+    decisions = decisions
+    #, topics = topics, categories = categories,
+    #calls = calls,
+    #payouts = payouts,
+    #sdgs = sdgs
   )
 
 }

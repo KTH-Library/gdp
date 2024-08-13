@@ -131,15 +131,22 @@ test_that("getting funded activities ('fundings') filter for first week of this 
 
 })
 
-test_that("getting calls updated in a specific timeperiod works", {
+test_that("getting calls updated in the last week works", {
 
-  beg <- paste0(as.Date("2023-02-01"), "T00:00:00Z")
-  end <- paste0(as.Date("2023-02-28"), "T23:59:59Z")
+
+  end <- now()
+  days_since <- 7
+  beg <- end - 60 * 60 * 24 * days_since
+
+  format_ts <- function(x) strftime(x, "%Y-%m-%dT%H:%M:%SZ")
+
+  #beg <- paste0(as.Date("2023-05-01"), "T00:00:00Z")
+  #end <- paste0(as.Date("2023-07-28"), "T23:59:59Z")
 
   res <- gdp_calls(
     filter = gdp_filter(type = "calls", limit = 10,
-      updated_from_ts = beg,
-      updated_to_ts = end
+      updated_from_ts = beg |> format_ts(),
+      updated_to_ts = end |> format_ts()
     )
   )
 
@@ -150,7 +157,7 @@ test_that("getting calls updated in a specific timeperiod works", {
   tz <- res |> purrr::map_chr("uppdateringTidpunkt") |>
     gsub(pattern = "T", replacement = " ")
 
-  is_valid <- tz >= parse_ts(beg) & tz <= parse_ts(end)
+  is_valid <- (tz >= parse_ts(beg) & tz <= parse_ts(end)) |> all()
 
   expect_true(is_valid)
 
