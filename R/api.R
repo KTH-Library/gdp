@@ -85,7 +85,7 @@ gdp_request <- function(resource = gdp_resources(), verbosity = 0, id = NULL, fi
   structure(
     resp,
     n = n,
-    next = np,
+    np = np,
     invocation = invocation
   )
 }
