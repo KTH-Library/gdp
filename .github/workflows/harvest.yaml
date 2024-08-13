@@ -21,4 +21,4 @@ jobs:
     steps:
       - run: |
           R -e 'remotes::install_github("KTH-Library/gdp")'
-          R -e 'library(gdp); harvest <- gdp:::gdp_harvest(); gdp_export_database(harvest); gdp_upload_files(sourcedir = gdp_export_tables(harvest, s3_targetdir = "kthb/projects/gdp")'
+          R -e 'library(gdp); harvest <- gdp:::gdp_harvest(); gdp_export_database(harvest); gdp_upload_files(sourcedir = gdp_export_tables(harvest), s3_targetdir = "kthb/projects/gdp")'

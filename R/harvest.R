@@ -148,6 +148,10 @@ gdp_export_database <- function(harvest, destdir = NULL) {
   message("Ensure existing dir: ", dirname(destdir))
   if (!dir.exists(dirname(destdir))) {
     is_created <- dir.create(dirname(destdir), showWarnings = TRUE)
+  } else {
+    message("Removing existing file ", destdir)
+    if (file.exists(destdir))
+      unlink(destdir)
   }
 
   drv <- duckdb::duckdb()
@@ -169,8 +173,9 @@ gdp_export_database <- function(harvest, destdir = NULL) {
   sql_create_db <- sprintf("create table %s as from %s;", new_tbl, toc) |>
     paste(collapse = "\n")
 
-  message("Creating duckdb file at ", destdir)
-  DBI::dbExecute(con, sql_create_db)
+  message("Creating duckdb file at ", destdir, " using sql ", sql_create_db)
+  result <- DBI::dbExecute(con, sql_create_db)
+  message("Result is ", result)
 
   return(destdir)
 
