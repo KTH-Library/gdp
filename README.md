@@ -26,8 +26,11 @@ open data provided through the API.
 
 Version 1 of the API conforms to this information model:
 
+## Information model
+
 <figure>
-<img src="gdp_schema_v1.png" alt="GDP information schema v 1" />
+<img src="man/figures/gdp_schema_v1.png"
+alt="GDP information schema v 1" />
 <figcaption aria-hidden="true">GDP information schema v 1</figcaption>
 </figure>
 
@@ -58,8 +61,14 @@ harvest <- gdp_harvest(organisation = my_orgid)
 # export the data into a local database (duckdb, see https://duckdb.org)
 destination_dir <- gdp_export_database(harvest)
 
+# upload the database to S3 object storage (given a specific S3 alias / path specification)
+gdp_upload_files(sourcedir = destination_dir, s3_targetdir = "kthb/projects/gdp")
+
 # export the resulting tables individually as .csv and .parquet
 gdp_export_tables(harvest, destdir = "/tmp/gdp")
+
+# upload the csv and parquet files to S3
+gdp_upload_files(sourcedir = "/tmp/gdp", s3_targetdir = "kthb/projects/gdp")
 ```
 
 This example shows how to search for proposals/applications across a few
