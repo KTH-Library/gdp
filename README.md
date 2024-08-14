@@ -10,8 +10,29 @@
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
-The goal of gdp is to provide some tools and resources that are usefull
+The goal of gdp is to provide some tools and resources which are useful
 when working with data from the GDP project.
+
+The client provided in the `gdp` R-package accesses data from an API
+described here:
+
+- <https://portal.api.vinnova.se/gdp-openapi-dokumentation>
+- <https://gdpswagger.vinnova.se/>
+- <https://portal.api.vinnova.se/gdp-openapi-dokumentation>
+
+Access to the API can be requested at <https://portal.api.vinnova.se>.
+This client makes use of a system account which provides access to the
+open data provided through the API.
+
+Version 1 of the API conforms to this information model:
+
+## Information model
+
+<figure>
+<img src="man/figures/gdp_schema_v1.png"
+alt="GDP information schema v 1" />
+<figcaption aria-hidden="true">GDP information schema v 1</figcaption>
+</figure>
 
 ## Installation
 
@@ -32,49 +53,22 @@ database:
 ``` r
 library(gdp)
 
-# use filters to extract data
-
 my_orgid <- "202100-3054"  # KTHs organisation id used in GDP
 
-fundings <- gdp_fundings(filter = gdp_filter(type = "fundings", org_id = my_orgid))
-proposals <- gdp_proposals(filter = gdp_filter(type = "proposals", org_id = my_orgid))
-calls <- gdp_calls()
+# harvest data for the given organisation identifier
+harvest <- gdp_harvest(organisation = my_orgid)
 
-# convert results to tabular (relational) data format
-my_fundings <- fundings |> gdp:::to_tbls_fundings()
-my_proposals <- proposals |> gdp:::to_tbls_proposals() 
-my_calls <- calls |> gdp:::to_tbls_calls()
+# export the data into a local database (duckdb, see https://duckdb.org)
+destination_dir <- gdp_export_database(harvest)
 
-# persist data in a local database
+# upload the database to S3 object storage (given a specific S3 alias / path specification)
+gdp_upload_files(sourcedir = destination_dir, s3_targetdir = "kthb/projects/gdp")
 
-library(duckdb)
-library(dbplyr)
+# export the resulting tables individually as .csv and .parquet
+gdp_export_tables(harvest, destdir = "/tmp/gdp")
 
-con <- DBI::dbConnect(duckdb::duckdb())
-
-purrr::map2(paste0("funding_", names(my_fundings)), my_fundings, 
-  \(x, y) duckdb::duckdb_register(con, name = x, df = y))
-
-purrr::map2(paste0("proposals_", names(my_proposals)), my_proposals, 
-  \(x, y) duckdb::duckdb_register(con, name = x, df = y))
-
-purrr::map2(paste0("calls_", names(my_calls)), my_calls, 
-  \(x, y) duckdb::duckdb_register(con, name = x, df = y))
-
-toc <- dbListTables(con)
-dest <- sprintf("~/repos/gdp/inst/markdown/db/%s.parquet", toc)
-
-sql <- 
-  sprintf("COPY (SELECT * FROM %s) TO '%s' (FORMAT PARQUET);", toc, dest) |> 
-  paste0(collapse = "\n")
-
-dbExecute(con, sql)
-
-dbDisconnect(con)
-
-# sync database to remote
-
-system("mc mirror ~/repos/gdp/inst/markdown/db kthb/projects/gdp")
+# upload the csv and parquet files to S3
+gdp_upload_files(sourcedir = "/tmp/gdp", s3_targetdir = "kthb/projects/gdp")
 ```
 
 This example shows how to search for proposals/applications across a few
@@ -91,7 +85,6 @@ my_orgid <- "202100-3054"  # KTHs organisation id used in GDP
 my_proposals <- 
   gdp_proposals(filter = gdp_filter(type = "proposals", org_id = my_orgid)) |> 
   gdp:::to_tbls_proposals()
-
 
 # proposals related to transport systems and logistics or has code which begins w "2.1.04"
 my_proposals$topics |> 

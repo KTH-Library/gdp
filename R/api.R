@@ -1,9 +1,10 @@
 gdp_base_url <- function()
-  "https://test.api.vinnova.se/gdp/v1"
+  "https://api.vinnova.se/gdp/v1"
 
 gdp_config <- function() {
   list(
-    token = "113d769b1f0b4f708b69855520588fea"
+#    token = "113d769b1f0b4f708b69855520588fea"
+    token = "52ac2b3b60c4402b9ebdd1c87cc734b9"
   )
 }
 
@@ -206,14 +207,20 @@ gdp_meta <- function() {
 
 #' @importFrom utils browseURL
 gdp_docs <- function(only_swagger = FALSE, browse = TRUE) {
-  url <- "https://nice-sand-09c980403.4.azurestaticapps.net"
-  if (!only_swagger) url <- paste0(url, "/documentation.html")
-  if (browse && interactive()) url |> browseURL()
+  #url <- "https://nice-sand-09c980403.4.azurestaticapps.net"
+  url <- "https://gdpswagger.vinnova.se/"
+
+  if (!only_swagger) #url <- paste0(url, "/documentation.html")
+    url <- "https://portal.api.vinnova.se/gdp-openapi-dokumentation"
+
+  if (browse && interactive())
+    url |> browseURL()
+
   return (url)
 }
 
 gdp_signup <- function(browse = TRUE) {
-  url <- "https://portal.test.api.vinnova.se/"
+  url <- "https://portal.api.vinnova.se/"
   if (browse && interactive()) url |> browseURL()
   return (url)
 }
