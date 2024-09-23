@@ -40,16 +40,17 @@ test_that("one financed activity (funding) is returned for a specific org (KTH)"
     type = "fundings", org_id = my_orgid, limit = 1)
   )
 
-  # Q: Why is KTH not amongst the financed orgs here?
-  #fundings[[1]]$beslutadFinansiering |>
-  #  purrr::map(c("finansieradOrganisation", "organisationsNummer"))
-
+  is_kth <- 
+    fundings  |> map("organisationer")  |> 
+    bind_rows()  |> pull(organisationsnummer)  |> 
+    `%in%`(my_orgid)  |> any()  
+  
   is_valid <-
     attr(fundings, "n") > 1000 &
     length(fundings) == 1 #&
     #fundings[[1]]$organisationer[[1]]$organisationsnummer == my_orgid
 
-  expect_true(is_valid)
+  expect_true(is_valid & is_kth)
 
 })
 
@@ -233,6 +234,57 @@ test_that("some header called x-ms-invocation-id is provided", {
   invocation <- attr(callz, "invocation")
 
   is_valid <- length(invocation) == 1
+  expect_true(is_valid)
+
+})
+
+test_that("record count differs if using org_id for proposals/fundings but not calls", {
+
+  my_orgid <- "202100-3054"
+
+  expect_error(rc_all <- gdp_request(
+#    verbosity = 1,
+    resource = gdp_resources()["calls"], 
+    filter = gdp_filter("calls", offset = 0, limit = 1, org_id = my_orgid)
+  ))
+
+  rc <- gdp_request(
+#    verbosity = 1,
+    resource = gdp_resources()["calls"], 
+    filter = gdp_filter("calls", offset = 0, limit = 1)
+  )
+
+  rf <- gdp_request(
+#    verbosity = 1,
+    resource = gdp_resources()["fundings"], 
+    filter = gdp_filter("fundings", offset = 0, limit = 1, org_id = my_orgid)
+  )
+  
+  rp <- gdp_request(
+#    verbosity = 1,
+    resource = gdp_resources()["proposals"], 
+    filter = gdp_filter("proposals", offset = 0, limit = 1, org_id = my_orgid)
+  )  
+
+  rp_all <- gdp_request(
+#    verbosity = 1,
+    resource = gdp_resources()["proposals"], 
+    filter = gdp_filter("proposals", offset = 0, limit = 1)
+  )  
+
+  rf_all <- gdp_request(
+#    verbosity = 1,
+    resource = gdp_resources()["fundings"], 
+    filter = gdp_filter("fundings", offset = 0, limit = 1)
+  )
+
+  n_rc <- rc |> attr("n")
+  n_rf <- rf |> attr("n")
+  n_rp <- rp |> attr("n")
+  n_rf_all <- rf_all |> attr("n")
+  n_rp_all <- rp_all |> attr("n")
+
+  is_valid <- (n_rp_all > n_rp) & (n_rf_all > n_rf) & (n_rc > 0) 
   expect_true(is_valid)
 
 })
