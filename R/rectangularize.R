@@ -451,3 +451,19 @@ to_tbls_fundings <- function(x) {
   )
 
 }
+
+# rectangularize <- function(df) {
+#
+#   my_list <- df |> map(unlist)
+#
+#   max_len <- my_list |> lengths() |> max()
+#   set_length <- function(x) `length<-`(x, max_len)
+#   my_list |> map(set_length) |> bind_cols()
+# }
+#
+# a <- toJSON(record) |> fromJSON() |> enframe()
+# b <- a |> pmap(.f = \(name, value) list(rectangularize(value)) |> setNames(nm = name)) |> list_flatten()
+# ones <- b |> map(\(x) ncol(x) == 1) |> as_vector()
+# list_assign(b[c(as.logical(ones) == FALSE)],
+#   root = b[c(as.logical(ones))] |> bind_cols() |> setNames(nm = names(b[ones])),
+# )

@@ -170,7 +170,7 @@ gdp_filter <- function(type = c("calls", "proposals", "fundings"),
     filters <- rlang::list2(
       programDiarienummer = program_id,
       utlysningDiarienummer = call_id,
-      Organisationsnummer = org_id,
+      organisationsnummer = org_id,
       minBeslutadFinansieringsBelopp = amount_min,
       maxBeslutadFinansieringsBelopp = amount_max,
       franBeslutDatum = decision_from_date,
@@ -238,52 +238,105 @@ to_tbl <- function(o)
 #' @importFrom purrr map map_dfr
 #' @importFrom tidyr unnest
 #' @importFrom dplyr bind_rows bind_cols select mutate filter any_of
-to_tbls <- function(entity = c("calls", "proposals", "fundings"), o) {
+to_tbls <- function(o, entity = c("calls", "proposals", "fundings")) {
 
   # TODO: replace with calls to "to_tbls_*" instead?
 
   e <- match.arg(entity, c("calls", "proposals", "fundings"))
+
   res <- switch(e,
     calls = {
-      list(
-        calls = o |> to_tbl(),
-        links = o |> purrr::map("lank") |> to_tbl(),
-        programs = o |> purrr::map("program") |> to_tbl()
-      )
+      to_tbls_calls(o)
+      # list(
+      #   calls = o |> to_tbl(),
+      #   links = o |> purrr::map("lank") |> to_tbl(),
+      #   programs = o |> purrr::map("program") |> to_tbl()
+      # )
     },
     proposals = {
-      list(
-        proposals = o |> map(filter_unnested) |> to_tbl(),
-        programs = o |> map("program", filter_unnested) |> to_tbl(),
-        calls = o |> map("utlysning") |> map(filter_unnested) |> to_tbl(),
-        links = o |> map("lank") |> to_tbl(),
-        decisions = o |> map("beslut") |> to_tbl(),
-        topic = o |> map("forskningsamnen") |> map_dfr(dplyr::bind_rows),
-        funder_category = o |> map("kategoriseringFinansiar") |> map_dfr(dplyr::bind_rows)
-      )
+      to_tbls_proposals(o)
+      # list(
+      #   proposals = o |> map(filter_unnested) |> to_tbl(),
+      #   programs = o |> map("program", filter_unnested) |> to_tbl(),
+      #   calls = o |> map("utlysning") |> map(filter_unnested) |> to_tbl(),
+      #   links = o |> map("lank") |> to_tbl(),
+      #   decisions = o |> map("beslut") |> to_tbl(),
+      #   topic = o |> map("forskningsamnen") |> map_dfr(dplyr::bind_rows),
+      #   funder_category = o |> map("kategoriseringFinansiar") |> map_dfr(dplyr::bind_rows)
+      # )
     },
     fundings = {
-      list(
-        fundings = o |> map(filter_unnested) |> to_tbl(),
-        programs = o |> map("program", filter_unnested) |> to_tbl(),
-        calls = o |> map("utlysning") |> map(filter_unnested) |> to_tbl(),
-        links = o |> map("lank") |> to_tbl(),
-        decisions = o |> map("beslut") |> to_tbl(),
-        topic = o |> map("forskningsamnen") |> map_dfr(dplyr::bind_rows),
-        funder_category = o |> map("kategoriseringFinansiar") |> map_dfr(dplyr::bind_rows),
-        sdgs = o |> map("hallbarhetsmal") |> map_dfr(dplyr::bind_rows),
-        funding_decisions =
-          o |> map("beslutadFinansiering") |> map_dfr(dplyr::bind_rows) |>
-          dplyr::select(-any_of(c("finansieradOrganisation"))),
-        funded_orgs = o |> map("beslutadFinansiering") |> map_dfr(dplyr::bind_rows) |>
-          dplyr::pull("finansieradOrganisation") |> map_dfr(dplyr::bind_rows) |>
-          tidyr::unnest(c("roll")),
-        persons = o |> map("personer") |> map_dfr(dplyr::bind_rows) |> tidyr::unnest(c("roll")),
-        orgs = o |> map("organisationer") |> map_dfr(dplyr::bind_rows) |> tidyr::unnest(c("roll"))
-      )
+      to_tbls_fundings(o)
+      # list(
+      #   fundings = o |> map(filter_unnested) |> to_tbl(),
+      #   programs = o |> map("program", filter_unnested) |> to_tbl(),
+      #   calls = o |> map("utlysning") |> map(filter_unnested) |> to_tbl(),
+      #   links = o |> map("lank") |> to_tbl(),
+      #   decisions = o |> map("beslut") |> to_tbl(),
+      #   topic = o |> map("forskningsamnen") |> map_dfr(dplyr::bind_rows),
+      #   funder_category = o |> map("kategoriseringFinansiar") |> map_dfr(dplyr::bind_rows),
+      #   sdgs = o |> map("hallbarhetsmal") |> map_dfr(dplyr::bind_rows),
+      #   funding_decisions =
+      #     o |> map("beslutadFinansiering") |> map_dfr(dplyr::bind_rows) |>
+      #     dplyr::select(-any_of(c("finansieradOrganisation"))),
+      #   funded_orgs = o |> map("beslutadFinansiering") |> map_dfr(dplyr::bind_rows) |>
+      #     dplyr::pull("finansieradOrganisation") |> map_dfr(dplyr::bind_rows) |>
+      #     tidyr::unnest(c("roll")),
+      #   persons = o |> map("personer") |> map_dfr(dplyr::bind_rows) |> tidyr::unnest(c("roll")),
+      #   orgs = o |> map("organisationer") |> map_dfr(dplyr::bind_rows) |> tidyr::unnest(c("roll"))
+      # )
     }
   )
 
   return(res)
 }
 
+#' @importFrom stats setNames
+gdp_crawl <- function(entity = "calls", chunk_size = 1000, format = c("table", "object")) {
+
+  if (missing(format)) fmt <- "table" else fmt <- match.arg(format, several.ok = FALSE)
+
+  fn <- function(entity, limit, offset) {
+
+    my_filter <- gdp_filter(type = entity, limit = limit, offset = offset)
+
+    res <- gdp_request(
+        resource = gdp_resources()[entity], 
+        filter = my_filter) |>
+      parse_response() 
+    
+    if (fmt == "table") {
+      res <- res |> to_tbls(entity)
+    }
+    
+    return(res)
+  }
+
+  limit <- chunk_size
+
+  first_call <- 
+    gdp_request(
+      verbosity = 0,
+      resource = gdp_resources()[entity],
+      filter = gdp_filter(type = entity, limit = 1, offset = 0)
+      ) |> 
+    parse_response()
+
+  n <- attr(first_call, "n")
+
+  pages <- 1:ceiling(n %/% limit + 1)
+
+  offsets <- (pages - 1) * limit
+
+  message("About to crawl ", length(pages), " pages with ", chunk_size, " records each.")
+
+  paramz <- data.frame(entity = entity, limit = chunk_size, offset = offsets)
+  res <- paramz |> purrr::pmap(.f = fn, .progress = TRUE)
+
+  if (fmt == "object") return(res |> purrr::map(c))
+
+  namez <- res |> map(names) |> unique() |> unlist()
+  consolidate <- function(x, slot) x |> map(slot) |> bind_rows()
+  namez |>  map(\(x) consolidate(res, x)) |> setNames(nm = namez)  
+
+}
