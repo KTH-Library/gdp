@@ -16,9 +16,9 @@ when working with data from the GDP project.
 The client provided in the `gdp` R-package accesses data from an API
 described here:
 
-- <https://portal.api.vinnova.se/gdp-openapi-dokumentation>
-- <https://gdpswagger.vinnova.se/>
-- <https://portal.api.vinnova.se/gdp-openapi-dokumentation>
+  - <https://portal.api.vinnova.se/gdp-openapi-dokumentation>
+  - <https://gdpswagger.vinnova.se/>
+  - <https://portal.api.vinnova.se/gdp-openapi-dokumentation>
 
 Access to the API can be requested at <https://portal.api.vinnova.se>.
 This client makes use of a system account which provides access to the
@@ -28,11 +28,7 @@ Version 1 of the API conforms to this information model:
 
 ## Information model
 
-<figure>
-<img src="man/figures/gdp_schema_v1.png"
-alt="GDP information schema v 1" />
-<figcaption aria-hidden="true">GDP information schema v 1</figcaption>
-</figure>
+![GDP information schema v 1](man/figures/gdp_schema_v1.png)
 
 ## Installation
 
@@ -95,3 +91,56 @@ my_proposals$topics |>
   select(id_proposal, title, req_amount, topic_code) |> 
   arrange(desc(req_amount))
 ```
+
+## Harvesting from GDP data providers that implement the “lite” JSON response format
+
+If a provider uses the “lite” JSON response format, a couple of
+functions allow for retrieving all data in one request in tabular form:
+
+``` r
+library(gdp)
+library(tidyverse)
+
+read_gdp_lite(
+  url = "https://data.bibliometrics.lib.kth.se/projects/em/fundings.json", 
+  entity = "finansieradeaktiviteter"
+)
+
+read_gdp_lite(
+  url = "https://data.bibliometrics.lib.kth.se/projects/em/calls.json", 
+  entity = "utlysningar"
+)
+
+read_gdp_lite(
+  url = "https://data.bibliometrics.lib.kth.se/projects/em/proposals.json", 
+  entity = "ansokningar"
+)
+```
+
+For such a provider, all data can be harvested and exported in one go as
+a single duckdb database file:
+
+``` r
+library(gdp)
+library(tidyverse)
+
+exported_db <- 
+  write_gdp_lite(
+    url_proposals = "https://data.bibliometrics.lib.kth.se/projects/em/proposals.json",
+    url_calls = "https://data.bibliometrics.lib.kth.se/projects/em/calls.json",
+    url_fundings = "https://data.bibliometrics.lib.kth.se/projects/em/fundings.json"
+  )
+
+# by default the exported_db will be located in the temp directory
+```
+
+After doing such a harvest, results can be transferred to S3 storage for
+remote access or the resulting db can be queried (locally or remotely)
+with tools like:
+
+  - <https://sql-workbench.com>
+  - <https://shell.duckdb.com>
+  - <https://harlequin.sh/>
+
+This single file database format can be used from R, Python, NodeJS and
+many other programming languages.

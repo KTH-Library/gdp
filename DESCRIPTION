@@ -1,6 +1,6 @@
 Package: gdp
 Title: Tools for GDP
-Version: 0.0.1
+Version: 0.1.0
 Authors@R: 
     person("Markus", "Skyttner", , "markussk@kth.se", role = c("aut", "cre"))
 Description: Tools for GDP provide tests and other facilities and resources
